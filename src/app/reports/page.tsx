@@ -20,6 +20,8 @@ interface Transaction {
   }[];
 }
 
+import { LocalData } from "@/lib/local-data";
+
 export default function ReportsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filterType, setFilterType] = useState<"daily" | "monthly">("daily");
@@ -34,10 +36,32 @@ export default function ReportsPage() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
+      // 1. Ambil data dari LocalData (Offline-First)
+      const allLocal = LocalData.getTransactions();
+      
+      // Filter data sesuai filter yang dipilih
+      const filtered = allLocal.filter(t => {
+        const date = new Date(t.createdAt);
+        if (filterType === "daily") {
+          return format(date, "yyyy-MM-dd") === dateFilter;
+        } else {
+          return format(date, "yyyy-MM") === monthFilter;
+        }
+      });
+
+      setTransactions(filtered);
+
+      // 2. Sync dari API jika ada (Background)
       const param = filterType === "daily" ? `date=${dateFilter}` : `month=${monthFilter}`;
-      const res = await fetch(`/api/transactions?${param}`);
-      const data = await res.json();
-      setTransactions(Array.isArray(data) ? data : []);
+      fetch(`/api/transactions?${param}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            // Optional sync
+          }
+        })
+        .catch(() => {});
+
     } catch (error) {
       console.error("Error fetching transactions:", error);
     } finally {

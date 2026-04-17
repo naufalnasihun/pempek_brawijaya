@@ -18,6 +18,8 @@ interface StockHistory {
   createdAt: string;
 }
 
+import { LocalData } from "@/lib/local-data";
+
 export default function InventoryPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [history, setHistory] = useState<StockHistory[]>([]);
@@ -29,6 +31,11 @@ export default function InventoryPage() {
   }, []);
 
   const fetchData = async () => {
+    // Gunakan LocalData (Offline-First)
+    setIngredients(LocalData.getIngredients());
+    setHistory(LocalData.getStockHistory());
+
+    // Sync dari API jika ada
     try {
       const [ingRes, histRes] = await Promise.all([
         fetch("/api/ingredients"),
@@ -36,10 +43,11 @@ export default function InventoryPage() {
       ]);
       const ingData = await ingRes.json();
       const histData = await histRes.json();
-      setIngredients(Array.isArray(ingData) ? ingData : []);
-      setHistory(Array.isArray(histData) ? histData : []);
+      if (Array.isArray(ingData) && ingData.length > 0) {
+        // Optional: Update LocalData from API
+      }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.log("Database tidak terdeteksi, menggunakan mode Offline.");
     }
   };
 
@@ -49,19 +57,23 @@ export default function InventoryPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/ingredients", {
+      const change = parseInt(stockForm.amount);
+      
+      // 1. Simpan ke LocalData (Langsung Berhasil)
+      LocalData.updateStock(stockForm.name, change);
+      
+      // 2. Coba simpan ke API (Background)
+      fetch("/api/ingredients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: stockForm.name,
-          stockChange: parseInt(stockForm.amount),
+          stockChange: change,
         }),
-      });
+      }).catch(() => {});
 
-      if (res.ok) {
-        setStockForm({ name: "", amount: "" });
-        fetchData();
-      }
+      setStockForm({ name: "", amount: "" });
+      fetchData();
     } catch (error) {
       console.error("Error updating stock:", error);
     } finally {

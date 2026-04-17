@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { PRODUCTS, Product, IngredientName } from "@/constants/products";
+import { LocalData } from "@/lib/local-data";
 import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, X, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -37,6 +38,11 @@ export default function CashierPage() {
   }, []);
 
   const fetchData = async () => {
+    // Gunakan LocalData (Offline-First)
+    setIngredients(LocalData.getIngredients());
+    setCashiers(LocalData.getCashiers());
+
+    // Sync dari API jika ada
     try {
       const [ingRes, cashRes] = await Promise.all([
         fetch("/api/ingredients"),
@@ -44,14 +50,18 @@ export default function CashierPage() {
       ]);
       const ingData = await ingRes.json();
       const cashData = await cashRes.json();
-      setIngredients(Array.isArray(ingData) ? ingData : []);
-      setCashiers(Array.isArray(cashData) ? cashData : []);
+      if (Array.isArray(ingData) && ingData.length > 0) {
+        // Sync local
+      }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.log("Database tidak terdeteksi, menggunakan mode Offline.");
     }
   };
 
   const checkStockAvailability = (product: Product, currentCart: CartItem[]) => {
+    // Ambil stok terbaru dari LocalData sebelum cek
+    const currentIngredients = LocalData.getIngredients();
+    
     // Total consumption including what's already in cart
     const totalConsumption: Record<string, number> = {};
     
@@ -66,7 +76,7 @@ export default function CashierPage() {
     let available = true;
     product.ingredients.forEach(ing => {
       const needed = (totalConsumption[ing.name] || 0) + ing.quantity;
-      const stock = ingredients.find(i => i.name === ing.name)?.stock || 0;
+      const stock = currentIngredients.find(i => i.name === ing.name)?.stock || 0;
       if (needed > stock) available = false;
     });
 
@@ -97,23 +107,19 @@ export default function CashierPage() {
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) => {
+      const product = prev.find(p => p.id === productId);
+      if (product && delta > 0) {
+        // Check stock before increasing
+        if (!checkStockAvailability(product, prev)) {
+          setMessage({ type: "error", text: `Stok tidak cukup!` });
+          setTimeout(() => setMessage(null), 3000);
+          return prev;
+        }
+      }
+
       return prev.map((item) => {
         if (item.id === productId) {
-          const newQty = item.quantity + delta;
-          if (newQty <= 0) return item; // Handled by removeFromCart if needed, or just keep at 1
-          
-          // Check stock if increasing
-          if (delta > 0) {
-            const product = PRODUCTS.find(p => p.id === productId)!;
-            // Check stock availability for the additional quantity
-            const otherItems = prev.filter(i => i.id !== productId);
-            const currentItemWithNewQty = { ...item, quantity: newQty };
-            if (!checkStockAvailability(product, [...otherItems, currentItemWithNewQty])) {
-               setMessage({ type: "error", text: `Stok tidak cukup untuk menambah quantity ${product.name}!` });
-               setTimeout(() => setMessage(null), 3000);
-               return item;
-            }
-          }
+          const newQty = Math.max(1, item.quantity + delta);
           return { ...item, quantity: newQty };
         }
         return item;
@@ -124,39 +130,44 @@ export default function CashierPage() {
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleCheckout = async () => {
-    if (!activeCashier) {
-      setMessage({ type: "error", text: "Pilih kasir terlebih dahulu!" });
-      return;
-    }
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !activeCashier) return;
 
     setLoading(true);
     try {
-      const res = await fetch("/api/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cashierName: activeCashier,
-          items: cart.map(item => ({
-            productName: item.name,
-            quantity: item.quantity,
-            price: item.price
-          })),
-          paymentMethod,
-          total
-        }),
+      const transactionData = {
+        cashierName: activeCashier,
+        total,
+        paymentMethod,
+        items: cart.map(item => ({
+          productName: item.name,
+          quantity: item.quantity,
+          price: item.price
+        }))
+      };
+
+      // 1. Simpan ke LocalData (Langsung Berhasil)
+      LocalData.saveTransaction(transactionData);
+      
+      // 2. Potong stok di LocalData
+      cart.forEach(item => {
+        item.ingredients.forEach(ing => {
+          LocalData.updateStock(ing.name, -(ing.quantity * item.quantity));
+        });
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setMessage({ type: "success", text: "Transaksi Berhasil!" });
-        setCart([]);
-        fetchData(); // Refresh stock
-      } else {
-        setMessage({ type: "error", text: data.error || "Transaksi Gagal" });
-      }
+      // 3. Coba simpan ke API (Background)
+      fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(transactionData),
+      }).catch(() => {});
+
+      setCart([]);
+      setMessage({ type: "success", text: "Transaksi Berhasil!" });
+      fetchData(); // Refresh stock display
     } catch (error) {
-      setMessage({ type: "error", text: "Terjadi kesalahan sistem" });
+      console.error("Error checkout:", error);
+      setMessage({ type: "error", text: "Terjadi kesalahan saat checkout." });
     } finally {
       setLoading(false);
       setTimeout(() => setMessage(null), 3000);
