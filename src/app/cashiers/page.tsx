@@ -61,6 +61,14 @@ export default function CashiersPage() {
     }
   };
 
+  const handleClearAllData = () => {
+    if (confirm("APAKAH ANDA YAKIN? Semua data stok, kasir, dan transaksi akan DIHAPUS PERMANEN dan dimulai dari nol.")) {
+      LocalData.clearAllData();
+      setMessage({ type: "success", text: "Semua data telah dihapus! Halaman akan dimuat ulang." });
+      setTimeout(() => window.location.reload(), 2000);
+    }
+  };
+
   const handleAddCashier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) return;
@@ -111,16 +119,25 @@ export default function CashiersPage() {
           </div>
         </div>
 
-        <button 
-          onClick={handleSyncDatabase}
-          disabled={setupLoading}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-        >
-          {setupLoading ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-          ) : <Database className="w-4 h-4 text-orange-400" />}
-          Setup Database
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleClearAllData}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg active:scale-95"
+          >
+            <Trash2 className="w-4 h-4" />
+            Hapus Semua Data
+          </button>
+          <button 
+            onClick={handleSyncDatabase}
+            disabled={setupLoading}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+          >
+            {setupLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : <Database className="w-4 h-4 text-orange-400" />}
+            Setup Database
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

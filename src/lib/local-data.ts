@@ -40,6 +40,7 @@ const STORAGE_KEYS = {
   TRANSACTIONS: "pempek_transactions",
   STOCK_HISTORY: "pempek_stock_history",
   CURRENT_SHIFT: "pempek_current_shift",
+  LAST_RESET_DATE: "pempek_last_reset_date",
 };
 
 // Default Initial Data
@@ -55,9 +56,39 @@ const DEFAULT_INGREDIENTS: Ingredient[] = INGREDIENTS.map((name) => ({
 }));
 
 export const LocalData = {
+  // --- INTERNAL UTILS ---
+  checkAutoReset: () => {
+    if (typeof window === "undefined") return;
+    
+    const today = new Date().toLocaleDateString();
+    const lastReset = localStorage.getItem(STORAGE_KEYS.LAST_RESET_DATE);
+    
+    if (lastReset !== today) {
+      // 1. Reset Stock to 0
+      localStorage.setItem(STORAGE_KEYS.INGREDIENTS, JSON.stringify(DEFAULT_INGREDIENTS));
+      
+      // 2. Clear Today's History (Optional, keeping history for now)
+      // localStorage.removeItem(STORAGE_KEYS.STOCK_HISTORY);
+      
+      // 3. Update last reset date
+      localStorage.setItem(STORAGE_KEYS.LAST_RESET_DATE, today);
+      console.log("Stok otomatis di-reset ke 0 untuk hari baru.");
+    }
+  },
+
+  clearAllData: () => {
+    if (typeof window === "undefined") return;
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    // Re-initialize with defaults
+    localStorage.setItem(STORAGE_KEYS.CASHIERS, JSON.stringify(DEFAULT_CASHIERS));
+    localStorage.setItem(STORAGE_KEYS.INGREDIENTS, JSON.stringify(DEFAULT_INGREDIENTS));
+    localStorage.setItem(STORAGE_KEYS.LAST_RESET_DATE, new Date().toLocaleDateString());
+  },
+
   // --- CASHIERS ---
   getCashiers: (): Cashier[] => {
     if (typeof window === "undefined") return DEFAULT_CASHIERS;
+    LocalData.checkAutoReset();
     const data = localStorage.getItem(STORAGE_KEYS.CASHIERS);
     if (!data) {
       localStorage.setItem(STORAGE_KEYS.CASHIERS, JSON.stringify(DEFAULT_CASHIERS));
@@ -76,6 +107,7 @@ export const LocalData = {
   // --- INGREDIENTS ---
   getIngredients: (): Ingredient[] => {
     if (typeof window === "undefined") return DEFAULT_INGREDIENTS;
+    LocalData.checkAutoReset();
     const data = localStorage.getItem(STORAGE_KEYS.INGREDIENTS);
     if (!data) {
       localStorage.setItem(STORAGE_KEYS.INGREDIENTS, JSON.stringify(DEFAULT_INGREDIENTS));
