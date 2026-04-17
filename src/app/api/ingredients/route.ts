@@ -17,8 +17,9 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
     return NextResponse.json(ingredients);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch ingredients" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Database Error:", error);
+    return NextResponse.json({ error: "Gagal terhubung ke database.", detail: error.message }, { status: 500 });
   }
 }
 

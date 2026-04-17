@@ -19,8 +19,9 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
     return NextResponse.json(cashiers);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch cashiers" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Database Error:", error);
+    return NextResponse.json({ error: "Gagal terhubung ke database. Pastikan DATABASE_URL benar dan npx prisma db push sudah dijalankan.", detail: error.message }, { status: 500 });
   }
 }
 
