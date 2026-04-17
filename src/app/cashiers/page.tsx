@@ -42,7 +42,10 @@ export default function CashiersPage() {
         setMessage({ type: "success", text: data.message });
         fetchCashiers();
       } else {
-        setMessage({ type: "error", text: data.detail || data.error });
+        // Tampilkan error yang lebih spesifik jika ada
+        const errorText = data.error || "Gagal menyinkronkan database.";
+        const detailText = data.detail ? ` (${data.detail})` : "";
+        setMessage({ type: "error", text: errorText + detailText });
       }
     } catch (error) {
       setMessage({ type: "error", text: "Terjadi kesalahan saat menyinkronkan database." });
