@@ -51,33 +51,33 @@ export default function RootLayout({
           {children}
         </main>
 
-        <footer className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center h-20 px-2 z-[90] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] rounded-t-[32px]">
-          <Link href="/dashboard" className="flex flex-col items-center gap-1.5 text-gray-400 group">
-            <div className="p-2.5 rounded-2xl group-active:scale-90 transition-all">
+        <footer className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center h-20 px-2 z-[90] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] rounded-t-[32px]">
+          <Link href="/dashboard" className="flex flex-col items-center gap-1.5 text-gray-400">
+            <div className="p-2.5 rounded-2xl active:bg-orange-50 active:text-primary transition-all">
               <LayoutDashboard className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">Dash</span>
           </Link>
-          <Link href="/" className="flex flex-col items-center gap-1.5 text-primary group">
-            <div className="bg-orange-50 p-2.5 rounded-2xl group-active:scale-90 transition-all">
+          <Link href="/" className="flex flex-col items-center gap-1.5 text-primary">
+            <div className="bg-orange-50 p-2.5 rounded-2xl active:scale-90 transition-all">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">Kasir</span>
           </Link>
-          <Link href="/inventory" className="flex flex-col items-center gap-1.5 text-gray-400 group">
-            <div className="p-2.5 rounded-2xl group-active:scale-90 transition-all">
+          <Link href="/inventory" className="flex flex-col items-center gap-1.5 text-gray-400">
+            <div className="p-2.5 rounded-2xl active:bg-orange-50 active:text-primary transition-all">
               <Package className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">Stok</span>
           </Link>
-          <Link href="/reports" className="flex flex-col items-center gap-1.5 text-gray-400 group">
-            <div className="p-2.5 rounded-2xl group-active:scale-90 transition-all">
+          <Link href="/reports" className="flex flex-col items-center gap-1.5 text-gray-400">
+            <div className="p-2.5 rounded-2xl active:bg-orange-50 active:text-primary transition-all">
               <BarChart3 className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">Laporan</span>
           </Link>
-          <Link href="/cashiers" className="flex flex-col items-center gap-1.5 text-gray-400 group">
-            <div className="p-2.5 rounded-2xl group-active:scale-90 transition-all">
+          <Link href="/cashiers" className="flex flex-col items-center gap-1.5 text-gray-400">
+            <div className="p-2.5 rounded-2xl active:bg-orange-50 active:text-primary transition-all">
               <Users className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">Admin</span>

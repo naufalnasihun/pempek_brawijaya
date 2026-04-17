@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
+    // Auto-seed default cashiers if table is empty
+    const count = await prisma.cashier.count();
+    if (count === 0) {
+      await prisma.cashier.createMany({
+        data: [
+          { name: "Naufal" },
+          { name: "Sari" },
+          { name: "Ade" },
+        ],
+      });
+    }
+
     const cashiers = await prisma.cashier.findMany({
       orderBy: { name: "asc" },
     });

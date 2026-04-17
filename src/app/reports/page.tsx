@@ -186,52 +186,66 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Receipt className="w-5 h-5 text-primary" />
-          Daftar Transaksi
-        </h2>
-        <div className="overflow-x-auto -mx-5 px-5">
-          <table className="w-full text-left min-w-[650px]">
+      <div className="card border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
+          <h2 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-widest">
+            <Receipt className="w-5 h-5 text-primary" />
+            Riwayat Transaksi
+          </h2>
+          <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded-lg border border-gray-100">
+            Total {transactions.length}
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[700px]">
             <thead>
-              <tr className="border-b text-gray-500 text-sm">
-                <th className="pb-2 font-medium">Waktu</th>
-                <th className="pb-2 font-medium">Kasir</th>
-                <th className="pb-2 font-medium">Item</th>
-                <th className="pb-2 font-medium text-right">Metode</th>
-                <th className="pb-2 font-medium text-right">Total</th>
+              <tr className="text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-50">
+                <th className="px-6 py-4 font-black">Waktu & ID</th>
+                <th className="px-6 py-4 font-black">Kasir</th>
+                <th className="px-6 py-4 font-black">Detail Pesanan</th>
+                <th className="px-6 py-4 font-black text-right">Pembayaran</th>
+                <th className="px-6 py-4 font-black text-right">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-gray-50">
               {transactions.map((t) => (
-                <tr key={t.id} className="text-sm">
-                  <td className="py-4 text-gray-500">
-                    {format(new Date(t.createdAt), "HH:mm", { locale: id })}
-                    <div className="text-[10px]">{format(new Date(t.createdAt), "dd MMM yyyy")}</div>
+                <tr key={t.id} className="text-sm hover:bg-gray-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-gray-900">{format(new Date(t.createdAt), "HH:mm", { locale: id })}</div>
+                    <div className="text-[10px] text-gray-400 font-medium">{format(new Date(t.createdAt), "dd MMM yyyy")}</div>
+                    <div className="text-[9px] text-gray-300 font-mono mt-1 group-hover:text-primary/50 transition-colors">#{t.id.slice(-6).toUpperCase()}</div>
                   </td>
-                  <td className="py-4 font-medium">{t.cashierName}</td>
-                  <td className="py-4">
-                    <div className="flex flex-col gap-1">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-orange-50 text-primary rounded-full flex items-center justify-center text-[10px] font-black border border-orange-100">
+                        {t.cashierName.charAt(0)}
+                      </div>
+                      <span className="font-bold text-gray-700">{t.cashierName}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1.5 max-w-[250px]">
                       {t.items.map((item, idx) => (
-                        <span key={idx} className="text-xs bg-gray-100 px-2 py-0.5 rounded-md w-fit">
-                          {item.productName} x{item.quantity}
-                        </span>
+                        <div key={idx} className="flex items-center gap-1 bg-white border border-gray-100 px-2 py-1 rounded-lg shadow-sm">
+                          <span className="text-[10px] font-black text-primary">{item.quantity}x</span>
+                          <span className="text-[10px] font-bold text-gray-600">{item.productName}</span>
+                        </div>
                       ))}
                     </div>
                   </td>
-                  <td className="py-4 text-right">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <td className="px-6 py-4 text-right">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase ${
                       t.paymentMethod === "TUNAI" 
-                        ? "bg-green-100 text-green-700" 
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
                         : t.paymentMethod === "GRAB"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-blue-100 text-blue-700"
+                        ? "bg-green-600 text-white"
+                        : "bg-blue-50 text-blue-600 border border-blue-100"
                     }`}>
                       {t.paymentMethod}
                     </span>
                   </td>
-                  <td className="py-4 text-right font-bold text-gray-900">
-                    Rp {t.total.toLocaleString()}
+                  <td className="px-6 py-4 text-right">
+                    <div className="text-sm font-black text-gray-900">Rp {t.total.toLocaleString()}</div>
                   </td>
                 </tr>
               ))}

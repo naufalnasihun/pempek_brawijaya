@@ -107,14 +107,15 @@ export default function InventoryPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Bahan Baku</label>
                 <select
-                  className="input"
+                  className="input h-12 bg-white text-gray-900"
                   required
+                  style={{ WebkitAppearance: 'none', appearance: 'none' }}
                   value={stockForm.name}
                   onChange={(e) => setStockForm({ ...stockForm, name: e.target.value })}
                 >
-                  <option value="">Pilih Bahan</option>
+                  <option value="" className="text-gray-500">Pilih Bahan</option>
                   {ingredients.map((ing) => (
-                    <option key={ing.name} value={ing.name}>
+                    <option key={ing.name} value={ing.name} className="text-gray-900">
                       {ing.name}
                     </option>
                   ))}
