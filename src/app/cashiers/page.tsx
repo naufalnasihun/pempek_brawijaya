@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, UserPlus, Trash2, CheckCircle2 } from "lucide-react";
+import { Users, UserPlus, Trash2, CheckCircle2, Database, AlertCircle } from "lucide-react";
 
 interface Cashier {
   id: string;
@@ -12,6 +12,8 @@ export default function CashiersPage() {
   const [cashiers, setCashiers] = useState<Cashier[]>([]);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     fetchCashiers();
@@ -21,9 +23,32 @@ export default function CashiersPage() {
     try {
       const res = await fetch("/api/cashiers");
       const data = await res.json();
-      setCashiers(Array.isArray(data) ? data : []);
+      if (Array.isArray(data)) {
+        setCashiers(data);
+      } else if (data.error) {
+        setMessage({ type: "error", text: data.error });
+      }
     } catch (error) {
       console.error("Error fetching cashiers:", error);
+    }
+  };
+
+  const handleSyncDatabase = async () => {
+    setSetupLoading(true);
+    try {
+      const res = await fetch("/api/setup");
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ type: "success", text: data.message });
+        fetchCashiers();
+      } else {
+        setMessage({ type: "error", text: data.detail || data.error });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Terjadi kesalahan saat menyinkronkan database." });
+    } finally {
+      setSetupLoading(false);
+      setTimeout(() => setMessage(null), 5000);
     }
   };
 
@@ -52,14 +77,37 @@ export default function CashiersPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
-      <div className="flex items-center gap-3">
-        <div className="bg-primary/10 p-3 rounded-2xl text-primary">
-          <Users className="w-8 h-8" />
+      {/* Toast Message */}
+      {message && (
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 px-6 py-4 rounded-2xl shadow-2xl z-[100] transition-all flex items-center gap-3 font-bold ${
+          message.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          {message.text}
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">DATA KASIR</h1>
-          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Manajemen Pengguna</p>
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 p-3 rounded-2xl text-primary">
+            <Users className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">DATA KASIR</h1>
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Manajemen Pengguna</p>
+          </div>
         </div>
+
+        <button 
+          onClick={handleSyncDatabase}
+          disabled={setupLoading}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+        >
+          {setupLoading ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          ) : <Database className="w-4 h-4 text-orange-400" />}
+          Setup Database
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
