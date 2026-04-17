@@ -22,6 +22,7 @@ interface Cashier {
 
 export default function CashierPage() {
   const [activeCashier, setActiveCashier] = useState<string>("");
+  const [activeShift, setActiveShift] = useState<string>("Shift 1");
   const [cashiers, setCashiers] = useState<Cashier[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -35,6 +36,7 @@ export default function CashierPage() {
     fetchData();
     const savedCashier = localStorage.getItem("activeCashier");
     if (savedCashier) setActiveCashier(savedCashier);
+    setActiveShift(LocalData.getCurrentShift());
   }, []);
 
   const fetchData = async () => {
@@ -202,12 +204,43 @@ export default function CashierPage() {
                 ))}
               </select>
             </div>
-            <div className="relative flex-1 max-w-md">
+
+            <div className="w-40">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Shift</label>
+              <div className="flex bg-gray-100 p-1 rounded-xl">
+                <button
+                  onClick={() => {
+                    LocalData.setCurrentShift("Shift 1");
+                    setActiveShift("Shift 1");
+                  }}
+                  className={clsx(
+                    "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                    activeShift === "Shift 1" ? "bg-white text-primary shadow-sm" : "text-gray-400"
+                  )}
+                >
+                  S1
+                </button>
+                <button
+                  onClick={() => {
+                    LocalData.setCurrentShift("Shift 2");
+                    setActiveShift("Shift 2");
+                  }}
+                  className={clsx(
+                    "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                    activeShift === "Shift 2" ? "bg-white text-primary shadow-sm" : "text-gray-400"
+                  )}
+                >
+                  S2
+                </button>
+              </div>
+            </div>
+
+            <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Cari paket pempek..."
-                className="input pl-12 h-12"
+                placeholder="Cari menu pempek..."
+                className="input h-12 pl-12"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

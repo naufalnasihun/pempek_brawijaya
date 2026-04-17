@@ -27,11 +27,12 @@ export default function ReportsPage() {
   const [filterType, setFilterType] = useState<"daily" | "monthly">("daily");
   const [dateFilter, setDateFilter] = useState(format(new Date(), "yyyy-MM-dd"));
   const [monthFilter, setMonthFilter] = useState(format(new Date(), "yyyy-MM"));
+  const [shiftFilter, setShiftFilter] = useState<string>("Semua Shift");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
-  }, [dateFilter, monthFilter, filterType]);
+  }, [dateFilter, monthFilter, filterType, shiftFilter]);
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -42,11 +43,16 @@ export default function ReportsPage() {
       // Filter data sesuai filter yang dipilih
       const filtered = allLocal.filter(t => {
         const date = new Date(t.createdAt);
-        if (filterType === "daily") {
-          return format(date, "yyyy-MM-dd") === dateFilter;
-        } else {
-          return format(date, "yyyy-MM") === monthFilter;
-        }
+        
+        // Filter Waktu
+        const matchesTime = filterType === "daily" 
+          ? format(date, "yyyy-MM-dd") === dateFilter
+          : format(date, "yyyy-MM") === monthFilter;
+          
+        // Filter Shift
+        const matchesShift = shiftFilter === "Semua Shift" || t.shift === shiftFilter;
+
+        return matchesTime && matchesShift;
       });
 
       setTransactions(filtered);
@@ -181,6 +187,15 @@ export default function ReportsPage() {
                   onChange={(e) => setMonthFilter(e.target.value)}
                 />
               )}
+              <select
+                className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-4 focus:ring-primary/10"
+                value={shiftFilter}
+                onChange={(e) => setShiftFilter(e.target.value)}
+              >
+                <option value="Semua Shift">Semua Shift</option>
+                <option value="Shift 1">Shift 1</option>
+                <option value="Shift 2">Shift 2</option>
+              </select>
             </div>
           </div>
         </div>

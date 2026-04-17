@@ -23,6 +23,7 @@ export interface Transaction {
   paymentMethod: string;
   items: TransactionItem[];
   createdAt: string;
+  shift: string; // "Shift 1" or "Shift 2"
 }
 
 export interface StockHistory {
@@ -38,6 +39,7 @@ const STORAGE_KEYS = {
   INGREDIENTS: "pempek_ingredients",
   TRANSACTIONS: "pempek_transactions",
   STOCK_HISTORY: "pempek_stock_history",
+  CURRENT_SHIFT: "pempek_current_shift",
 };
 
 // Default Initial Data
@@ -119,12 +121,14 @@ export const LocalData = {
     const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
     return data ? JSON.parse(data) : [];
   },
-  saveTransaction: (transaction: Omit<Transaction, "id" | "createdAt">): Transaction => {
+  saveTransaction: (transaction: Omit<Transaction, "id" | "createdAt" | "shift">): Transaction => {
     const transactions = LocalData.getTransactions();
+    const currentShift = LocalData.getCurrentShift();
     const newTransaction: Transaction = {
       ...transaction,
       id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString(),
+      shift: currentShift,
     };
     const updated = [newTransaction, ...transactions];
     localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(updated));
@@ -132,5 +136,15 @@ export const LocalData = {
     // Deduct stock for each item in transaction
     // This logic should be handled by the caller or here
     return newTransaction;
+  },
+
+  // --- SHIFT MANAGEMENT ---
+  getCurrentShift: (): string => {
+    if (typeof window === "undefined") return "Shift 1";
+    const shift = localStorage.getItem(STORAGE_KEYS.CURRENT_SHIFT);
+    return shift || "Shift 1";
+  },
+  setCurrentShift: (shift: string) => {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_SHIFT, shift);
   },
 };

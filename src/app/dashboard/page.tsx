@@ -6,11 +6,14 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
+import { LocalData } from "@/lib/local-data";
+
 interface Summary {
   todayRevenue: number;
   todayTransactions: number;
   lowStockIngredients: { name: string; stock: number }[];
   recentTransactions: any[];
+  currentShift: string;
 }
 
 export default function DashboardPage() {
@@ -19,6 +22,7 @@ export default function DashboardPage() {
     todayTransactions: 0,
     lowStockIngredients: [],
     recentTransactions: [],
+    currentShift: "Shift 1",
   });
   const [loading, setLoading] = useState(true);
 
@@ -28,21 +32,35 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const [transRes, ingRes] = await Promise.all([
-        fetch(`/api/transactions?date=${today}`),
-        fetch("/api/ingredients"),
-      ]);
-
-      const transactions = await transRes.json();
-      const ingredients = await ingRes.json();
+      // 1. Ambil data dari LocalData (Offline-First)
+      const allTransactions = LocalData.getTransactions();
+      const allIngredients = LocalData.getIngredients();
+      const currentShift = LocalData.getCurrentShift();
+      
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      
+      // Filter transaksi hari ini DAN shift aktif
+      const todayTransactions = allTransactions.filter(t => {
+        const isToday = format(new Date(t.createdAt), "yyyy-MM-dd") === todayStr;
+        const isCurrentShift = t.shift === currentShift;
+        return isToday && isCurrentShift;
+      });
 
       setSummary({
-        todayRevenue: Array.isArray(transactions) ? transactions.reduce((sum: number, t: any) => sum + t.total, 0) : 0,
-        todayTransactions: Array.isArray(transactions) ? transactions.length : 0,
-        lowStockIngredients: Array.isArray(ingredients) ? ingredients.filter((i: any) => i.stock < 10) : [],
-        recentTransactions: Array.isArray(transactions) ? transactions.slice(0, 5) : [],
+        todayRevenue: todayTransactions.reduce((sum, t) => sum + t.total, 0),
+        todayTransactions: todayTransactions.length,
+        lowStockIngredients: allIngredients.filter(i => i.stock < 10),
+        recentTransactions: todayTransactions.slice(0, 5),
+        currentShift,
       });
+
+      // 2. Sync dari API (Background)
+      const today = format(new Date(), "yyyy-MM-dd");
+      Promise.all([
+        fetch(`/api/transactions?date=${today}`),
+        fetch("/api/ingredients"),
+      ]).catch(() => {});
+
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -79,7 +97,10 @@ export default function DashboardPage() {
             <div className="bg-white/20 p-2 rounded-xl text-white">
               <TrendingUp className="w-5 h-5" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Omzet Hari Ini</span>
+            <div className="text-right">
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block">Omzet Hari Ini</span>
+              <span className="text-[10px] font-black uppercase bg-white/20 px-2 py-0.5 rounded-md">{summary.currentShift}</span>
+            </div>
           </div>
           <div className="text-3xl font-black">Rp {summary.todayRevenue.toLocaleString()}</div>
         </div>
