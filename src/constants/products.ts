@@ -1,4 +1,4 @@
-export type IngredientName = "Kapal Selam Kecil" | "Kapal Selam Besar" | "Lenjer" | "Moza";
+export type IngredientName = "Kapal Selam Kecil" | "Kapal Selam Besar" | "Lenjer" | "Moza" | "Kripik";
 
 export interface Product {
   id: string;
@@ -12,16 +12,13 @@ export interface Product {
 
 export const PRODUCTS: Product[] = [
   {
-    id: "paket-hemat",
-    name: "Paket Hemat",
-    price: 5000,
-    ingredients: [{ name: "Kapal Selam Kecil", quantity: 3 }],
-  },
-  {
     id: "paket-nyoba",
     name: "Paket Nyoba",
     price: 10000,
-    ingredients: [{ name: "Kapal Selam Kecil", quantity: 5 }],
+    ingredients: [
+      { name: "Kapal Selam Kecil", quantity: 2 },
+      { name: "Lenjer", quantity: 1 },
+    ],
   },
   {
     id: "paket-lenjer",
@@ -32,7 +29,7 @@ export const PRODUCTS: Product[] = [
   {
     id: "paket-gembul",
     name: "Paket Gembul",
-    price: 10000,
+    price: 12000,
     ingredients: [{ name: "Kapal Selam Besar", quantity: 1 }],
   },
   {
@@ -56,17 +53,19 @@ export const PRODUCTS: Product[] = [
     price: 20000,
     ingredients: [
       { name: "Kapal Selam Besar", quantity: 1 },
-      { name: "Lenjer", quantity: 2 },
+      { name: "Kapal Selam Kecil", quantity: 1 },
+      { name: "Lenjer", quantity: 1 },
     ],
   },
   {
-    id: "paket-super-duper-mantul",
-    name: "Paket Super Duper Mantul",
+    id: "paket-super-duper-komplit",
+    name: "Paket Super Duper Komplit",
     price: 25000,
     ingredients: [
       { name: "Kapal Selam Besar", quantity: 1 },
-      { name: "Lenjer", quantity: 2 },
-      { name: "Kapal Selam Kecil", quantity: 3 },
+      { name: "Kapal Selam Kecil", quantity: 2 },
+      { name: "Lenjer", quantity: 1 },
+      { name: "Kripik", quantity: 1 },
     ],
   },
 ];
@@ -76,4 +75,5 @@ export const INGREDIENTS: IngredientName[] = [
   "Kapal Selam Besar",
   "Lenjer",
   "Moza",
+  "Kripik",
 ];

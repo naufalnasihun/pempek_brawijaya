@@ -113,7 +113,14 @@ export const LocalData = {
       localStorage.setItem(STORAGE_KEYS.INGREDIENTS, JSON.stringify(DEFAULT_INGREDIENTS));
       return DEFAULT_INGREDIENTS;
     }
-    return JSON.parse(data);
+    const existingIngredients = JSON.parse(data);
+    // Ensure all new ingredients are added with 0 stock
+    const mergedIngredients = DEFAULT_INGREDIENTS.map(defaultIng => {
+      const existing = existingIngredients.find((e: Ingredient) => e.name === defaultIng.name);
+      return existing || { ...defaultIng, stock: 0 };
+    });
+    localStorage.setItem(STORAGE_KEYS.INGREDIENTS, JSON.stringify(mergedIngredients));
+    return mergedIngredients;
   },
   updateStock: (name: string, change: number): Ingredient[] => {
     const ingredients = LocalData.getIngredients();

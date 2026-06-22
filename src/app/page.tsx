@@ -31,6 +31,7 @@ export default function CashierPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+  const [uangDiterima, setUangDiterima] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -130,8 +131,22 @@ export default function CashierPage() {
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const uangDiterimaNum = parseInt(uangDiterima.replace(/\D/g, "")) || 0;
+  const kembalian = uangDiterimaNum - total;
 
   const handleCheckout = async () => {
+    if (paymentMethod === "TUNAI") {
+      if (!uangDiterima) {
+        setMessage({ type: "error", text: "Masukkan nominal uang yang diterima!" });
+        setTimeout(() => setMessage(null), 3000);
+        return;
+      }
+      if (uangDiterimaNum < total) {
+        setMessage({ type: "error", text: "Uang yang diterima kurang!" });
+        setTimeout(() => setMessage(null), 3000);
+        return;
+      }
+    }
     if (cart.length === 0 || !activeCashier) return;
 
     setLoading(true);
@@ -165,6 +180,7 @@ export default function CashierPage() {
       }).catch(() => {});
 
       setCart([]);
+      setUangDiterima("");
       setMessage({ type: "success", text: "Transaksi Berhasil!" });
       fetchData(); // Refresh stock display
     } catch (error) {
@@ -358,6 +374,48 @@ export default function CashierPage() {
                 <span className="text-primary font-black text-2xl">Rp {total.toLocaleString()}</span>
               </div>
 
+              {paymentMethod === "TUNAI" && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1 block">Uang Diterima</label>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => setUangDiterima("50.000")}
+                        className="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:border-primary hover:text-primary transition-all active:scale-95"
+                      >
+                        50.000
+                      </button>
+                      <button
+                        onClick={() => setUangDiterima("100.000")}
+                        className="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:border-primary hover:text-primary transition-all active:scale-95"
+                      >
+                        100.000
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={uangDiterima}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        setUangDiterima(value ? parseInt(value).toLocaleString() : "");
+                      }}
+                      placeholder="Masukkan nominal"
+                      className="input"
+                    />
+                  </div>
+
+                  {uangDiterimaNum >= total && kembalian > 0 && (
+                    <div className="bg-green-50 p-3 rounded-xl border border-green-100">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-xs font-bold uppercase tracking-widest">Kembalian</span>
+                        <span className="text-green-700 font-black text-lg">Rp {kembalian.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setPaymentMethod("TUNAI")}
@@ -507,6 +565,48 @@ export default function CashierPage() {
                 <span className="text-gray-400 font-bold text-xs uppercase tracking-widest">Total Bayar</span>
                 <span className="text-2xl font-black text-primary">Rp {total.toLocaleString()}</span>
               </div>
+
+              {paymentMethod === "TUNAI" && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1 block">Uang Diterima</label>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => setUangDiterima("50.000")}
+                        className="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:border-primary hover:text-primary transition-all active:scale-95"
+                      >
+                        50.000
+                      </button>
+                      <button
+                        onClick={() => setUangDiterima("100.000")}
+                        className="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:border-primary hover:text-primary transition-all active:scale-95"
+                      >
+                        100.000
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={uangDiterima}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        setUangDiterima(value ? parseInt(value).toLocaleString() : "");
+                      }}
+                      placeholder="Masukkan nominal"
+                      className="input"
+                    />
+                  </div>
+
+                  {uangDiterimaNum >= total && kembalian > 0 && (
+                    <div className="bg-green-50 p-3 rounded-xl border border-green-100">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-xs font-bold uppercase tracking-widest">Kembalian</span>
+                        <span className="text-green-700 font-black text-lg">Rp {kembalian.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-3">
                 <button
