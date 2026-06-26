@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BarChart3, Download, Calendar, Filter, Receipt, TrendingUp } from "lucide-react";
+import { BarChart3, Download, Calendar, Filter, Receipt, TrendingUp, Trash2, Edit2, X, Check, Plus, Minus } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import { id } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { PRODUCTS } from "@/constants/products";
 
 interface Transaction {
   id: string;
@@ -18,6 +19,7 @@ interface Transaction {
     quantity: number;
     price: number;
   }[];
+  shift: string;
 }
 
 import { LocalData } from "@/lib/local-data";
@@ -29,6 +31,8 @@ export default function ReportsPage() {
   const [monthFilter, setMonthFilter] = useState(format(new Date(), "yyyy-MM"));
   const [shiftFilter, setShiftFilter] = useState<string>("Semua Shift");
   const [loading, setLoading] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editItems, setEditItems] = useState<{productName: string; quantity: number; price: number}[]>([]);
 
   useEffect(() => {
     fetchTransactions();
@@ -90,6 +94,44 @@ export default function ReportsPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Laporan");
     const fileName = `Laporan_${filterType}_${filterType === "daily" ? dateFilter : monthFilter}.xlsx`;
     XLSX.writeFile(wb, fileName);
+  };
+
+  const handleDeleteTransaction = (transactionId: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini? Stok akan dikembalikan.")) {
+      LocalData.deleteTransaction(transactionId);
+      fetchTransactions();
+    }
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction({...transaction});
+    setEditItems([...transaction.items]);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTransaction) return;
+    
+    // Hitung total baru
+    const newTotal = editItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    const updatedTransaction: Transaction = {
+      ...editingTransaction,
+      items: editItems,
+      total: newTotal
+    };
+    
+    LocalData.updateTransaction(updatedTransaction);
+    setEditingTransaction(null);
+    fetchTransactions();
+  };
+
+  const updateEditItemQuantity = (index: number, delta: number) => {
+    const newItems = [...editItems];
+    newItems[index] = {
+      ...newItems[index],
+      quantity: Math.max(1, newItems[index].quantity + delta)
+    };
+    setEditItems(newItems);
   };
 
   const totalRevenue = transactions.reduce((sum, t) => sum + t.total, 0);
@@ -236,7 +278,7 @@ export default function ReportsPage() {
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
+          <table className="w-full text-left min-w-[800px]">
             <thead>
               <tr className="text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-50">
                 <th className="px-6 py-4 font-black">Waktu & ID</th>
@@ -244,6 +286,7 @@ export default function ReportsPage() {
                 <th className="px-6 py-4 font-black">Detail Pesanan</th>
                 <th className="px-6 py-4 font-black text-right">Pembayaran</th>
                 <th className="px-6 py-4 font-black text-right">Total</th>
+                <th className="px-6 py-4 font-black text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -286,18 +329,34 @@ export default function ReportsPage() {
                   <td className="px-6 py-4 text-right">
                     <div className="text-sm font-black text-gray-900">Rp {t.total.toLocaleString()}</div>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleEditTransaction(t)}
+                        className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTransaction(t.id)}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {transactions.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-gray-400">
+                  <td colSpan={6} className="py-10 text-center text-gray-400">
                     Tidak ada transaksi ditemukan
                   </td>
                 </tr>
               )}
               {loading && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-gray-400">
+                  <td colSpan={6} className="py-10 text-center text-gray-400">
                     Memuat data...
                   </td>
                 </tr>
@@ -306,6 +365,83 @@ export default function ReportsPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-xl font-black text-gray-900">Edit Transaksi</h3>
+              <button
+                onClick={() => setEditingTransaction(null)}
+                className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Detail Pesanan</label>
+                <div className="space-y-3">
+                  {editItems.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <div className="font-bold text-gray-900">{item.productName}</div>
+                        <div className="text-xs text-gray-500">Rp {item.price.toLocaleString()} / item</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 bg-white rounded-lg border border-gray-200">
+                          <button
+                            onClick={() => updateEditItemQuantity(index, -1)}
+                            className="p-1.5 text-gray-500 hover:text-gray-700"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-8 text-center font-bold">{item.quantity}</span>
+                          <button
+                            onClick={() => updateEditItemQuantity(index, 1)}
+                            className="p-1.5 text-gray-500 hover:text-gray-700"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="font-bold text-primary w-24 text-right">
+                          Rp {(item.price * item.quantity).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700 font-bold">Total</span>
+                  <span className="text-2xl font-black text-primary">
+                    Rp {editItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setEditingTransaction(null)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex-1 py-3 btn-primary"
+                >
+                  <Check className="w-4 h-4 inline mr-2" />
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

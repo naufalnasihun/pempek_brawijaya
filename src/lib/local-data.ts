@@ -1,4 +1,4 @@
-import { Product, INGREDIENTS } from "@/constants/products";
+import { Product, INGREDIENTS, PRODUCTS } from "@/constants/products";
 
 export interface Ingredient {
   name: string;
@@ -134,6 +134,23 @@ export const LocalData = {
     
     return updated;
   },
+  setStock: (name: string, newStock: number): Ingredient[] => {
+    const ingredients = LocalData.getIngredients();
+    const currentIng = ingredients.find(i => i.name === name);
+    const change = newStock - (currentIng?.stock || 0);
+    
+    const updated = ingredients.map((ing) =>
+      ing.name === name ? { ...ing, stock: Math.max(0, newStock) } : ing
+    );
+    localStorage.setItem(STORAGE_KEYS.INGREDIENTS, JSON.stringify(updated));
+    
+    // Add to history
+    if (change !== 0) {
+      LocalData.addStockHistory(name, change);
+    }
+    
+    return updated;
+  },
 
   // --- STOCK HISTORY ---
   getStockHistory: (): StockHistory[] => {
@@ -171,10 +188,57 @@ export const LocalData = {
     };
     const updated = [newTransaction, ...transactions];
     localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(updated));
-
-    // Deduct stock for each item in transaction
-    // This logic should be handled by the caller or here
     return newTransaction;
+  },
+  deleteTransaction: (transactionId: string): void => {
+    const transactions = LocalData.getTransactions();
+    const transaction = transactions.find(t => t.id === transactionId);
+    
+    if (transaction) {
+      // Restore stock
+      transaction.items.forEach(item => {
+        const product = PRODUCTS.find(p => p.name === item.productName);
+        if (product) {
+          product.ingredients.forEach(ing => {
+            LocalData.updateStock(ing.name, ing.quantity * item.quantity);
+          });
+        }
+      });
+      
+      // Remove transaction
+      const updated = transactions.filter(t => t.id !== transactionId);
+      localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(updated));
+    }
+  },
+  updateTransaction: (updatedTransaction: Transaction): void => {
+    const transactions = LocalData.getTransactions();
+    const oldTransaction = transactions.find(t => t.id === updatedTransaction.id);
+    
+    if (oldTransaction) {
+      // Restore old stock
+      oldTransaction.items.forEach(item => {
+        const product = PRODUCTS.find(p => p.name === item.productName);
+        if (product) {
+          product.ingredients.forEach(ing => {
+            LocalData.updateStock(ing.name, ing.quantity * item.quantity);
+          });
+        }
+      });
+      
+      // Deduct new stock
+      updatedTransaction.items.forEach(item => {
+        const product = PRODUCTS.find(p => p.name === item.productName);
+        if (product) {
+          product.ingredients.forEach(ing => {
+            LocalData.updateStock(ing.name, -(ing.quantity * item.quantity));
+          });
+        }
+      });
+      
+      // Update transaction
+      const updated = transactions.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
+      localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(updated));
+    }
   },
 
   // --- SHIFT MANAGEMENT ---

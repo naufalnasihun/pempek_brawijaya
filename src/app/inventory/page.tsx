@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Minus, History, Package } from "lucide-react";
+import { Plus, Minus, History, Package, Edit2, Check } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
@@ -25,6 +25,8 @@ export default function InventoryPage() {
   const [history, setHistory] = useState<StockHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [stockForm, setStockForm] = useState({ name: "", amount: "" });
+  const [editingIngredient, setEditingIngredient] = useState<string | null>(null);
+  const [editStockValue, setEditStockValue] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -81,6 +83,30 @@ export default function InventoryPage() {
     }
   };
 
+  const handleEditStock = (ingredientName: string) => {
+    const ingredient = ingredients.find(i => i.name === ingredientName);
+    if (ingredient) {
+      setEditStockValue(ingredient.stock.toString());
+      setEditingIngredient(ingredientName);
+    }
+  };
+
+  const handleSaveEditStock = () => {
+    if (!editingIngredient || !editStockValue) return;
+
+    setLoading(true);
+    try {
+      const newStock = parseInt(editStockValue);
+      LocalData.setStock(editingIngredient, newStock);
+      setEditingIngredient(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error editing stock:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-10">
       <div className="flex items-center justify-between">
@@ -99,10 +125,41 @@ export default function InventoryPage() {
         {ingredients.map((ing) => (
           <div key={ing.name} className="card border-l-4 border-l-primary flex flex-col gap-1 hover:shadow-md transition-shadow">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">{ing.name}</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-black text-gray-900">{ing.stock}</span>
-              <span className="text-sm font-semibold text-gray-500">biji</span>
-            </div>
+            {editingIngredient === ing.name ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={editStockValue}
+                  onChange={(e) => setEditStockValue(e.target.value)}
+                  onBlur={handleSaveEditStock}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveEditStock();
+                  }}
+                  className="w-24 px-3 py-1 border border-gray-200 rounded-lg text-center text-2xl font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  autoFocus
+                />
+                <span className="text-sm font-semibold text-gray-500">biji</span>
+                <button
+                  onClick={handleSaveEditStock}
+                  className="p-1.5 bg-primary text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-gray-900">{ing.stock}</span>
+                  <span className="text-sm font-semibold text-gray-500">biji</span>
+                </div>
+                <button
+                  onClick={() => handleEditStock(ing.name)}
+                  className="p-2 text-gray-400 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

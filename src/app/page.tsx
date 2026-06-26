@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { PRODUCTS, Product, IngredientName } from "@/constants/products";
 import { LocalData } from "@/lib/local-data";
-import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, X, ChevronUp } from "lucide-react";
+import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, X, ChevronUp, Settings, Check } from "lucide-react";
 import { clsx } from "clsx";
 
 interface CartItem extends Product {
@@ -20,6 +20,11 @@ interface Cashier {
   name: string;
 }
 
+interface MixMenuIngredient {
+  name: string;
+  quantity: number;
+}
+
 export default function CashierPage() {
   const [activeCashier, setActiveCashier] = useState<string>("");
   const [activeShift, setActiveShift] = useState<string>("Shift 1");
@@ -32,6 +37,8 @@ export default function CashierPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [uangDiterima, setUangDiterima] = useState<string>("");
+  const [isMixMenuOpen, setIsMixMenuOpen] = useState(false);
+  const [mixMenuIngredients, setMixMenuIngredients] = useState<MixMenuIngredient[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -39,6 +46,13 @@ export default function CashierPage() {
     if (savedCashier) setActiveCashier(savedCashier);
     setActiveShift(LocalData.getCurrentShift());
   }, []);
+
+  // Inisialisasi mix menu ketika ingredients di-load
+  useEffect(() => {
+    if (ingredients.length > 0) {
+      setMixMenuIngredients(ingredients.map(ing => ({ name: ing.name, quantity: 0 })));
+    }
+  }, [ingredients]);
 
   const fetchData = async () => {
     // Gunakan LocalData (Offline-First)
@@ -128,6 +142,79 @@ export default function CashierPage() {
         return item;
       });
     });
+  };
+
+  const updateMixMenuIngredient = (name: string, delta: number) => {
+    setMixMenuIngredients(prev => prev.map(ing => {
+      if (ing.name === name) {
+        const newQty = Math.max(0, ing.quantity + delta);
+        // Check stock
+        const currentStock = ingredients.find(i => i.name === name)?.stock || 0;
+        if (newQty > currentStock) {
+          setMessage({ type: "error", text: `Stok ${name} tidak cukup!` });
+          setTimeout(() => setMessage(null), 3000);
+          return ing;
+        }
+        return { ...ing, quantity: newQty };
+      }
+      return ing;
+    }));
+  };
+
+  const calculateMixMenuPrice = () => {
+    // Harga dasar per kombinasi bahan
+    let price = 0;
+    mixMenuIngredients.forEach(ing => {
+      if (ing.quantity > 0) {
+        switch (ing.name) {
+          case "Kapal Selam Kecil": price += 2500 * ing.quantity; break;
+          case "Kapal Selam Besar": price += 12000 * ing.quantity; break;
+          case "Lenjer": price += 5000 * ing.quantity; break;
+          case "Mozarella": price += 5000 * ing.quantity; break;
+          case "Kripik": price += 1000 * ing.quantity; break;
+          default: price += 1000 * ing.quantity;
+        }
+      }
+    });
+    return price;
+  };
+
+  const addMixMenuToCart = () => {
+    const selectedIngredients = mixMenuIngredients.filter(ing => ing.quantity > 0);
+    if (selectedIngredients.length === 0) {
+      setMessage({ type: "error", text: "Pilih minimal 1 bahan!" });
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
+
+    // Cek stok total
+    const currentIngredients = LocalData.getIngredients();
+    let stockAvailable = true;
+    selectedIngredients.forEach(ing => {
+      const stock = currentIngredients.find(i => i.name === ing.name)?.stock || 0;
+      if (ing.quantity > stock) stockAvailable = false;
+    });
+
+    if (!stockAvailable) {
+      setMessage({ type: "error", text: "Stok tidak cukup!" });
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
+
+    const mixMenuProduct: CartItem = {
+      id: `mix-${Date.now()}`,
+      name: "Menu Mix",
+      price: calculateMixMenuPrice(),
+      ingredients: selectedIngredients,
+      category: "mix",
+      quantity: 1
+    };
+
+    setCart(prev => [...prev, mixMenuProduct]);
+    setMixMenuIngredients(ingredients.map(ing => ({ name: ing.name, quantity: 0 })));
+    setIsMixMenuOpen(false);
+    setMessage({ type: "success", text: "Menu Mix ditambahkan ke keranjang!" });
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -264,6 +351,31 @@ export default function CashierPage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            {/* Menu Mix Button */}
+            <button
+              onClick={() => setIsMixMenuOpen(true)}
+              className="card relative flex flex-col justify-between items-start text-left gap-3 hover:border-primary group transition-all duration-300 p-4 min-h-[140px] sm:min-h-[160px] border-dashed border-2 border-primary/30 bg-orange-50/30 hover:bg-orange-50"
+            >
+              <div className="space-y-1 w-full">
+                <div className="text-sm sm:text-base font-bold text-gray-900 leading-tight group-hover:text-primary transition-colors pr-4 flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-primary" />
+                  Menu Mix
+                </div>
+                <div className="text-[10px] sm:text-xs text-gray-500 font-medium">
+                  Pilih bahan sesuai selera
+                </div>
+              </div>
+              
+              <div className="w-full flex justify-between items-center mt-auto pt-2">
+                <div className="text-primary font-black text-lg sm:text-xl">
+                  Custom
+                </div>
+                <div className="bg-primary p-2 rounded-xl">
+                  <Plus className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            </button>
+
             {filteredProducts.map((product) => {
               const isAvailable = checkStockAvailability(product, cart);
               return (
@@ -651,6 +763,96 @@ export default function CashierPage() {
               >
                 {loading ? "Memproses..." : "Checkout Sekarang"}
               </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Menu Mix Modal */}
+      {isMixMenuOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300"
+            onClick={() => setIsMixMenuOpen(false)}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto z-[60] p-6">
+            <div className="flex items-center justify-between mb-6 border-b pb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg text-primary">
+                  <Settings className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl font-black text-gray-900">Menu Mix</h2>
+              </div>
+              <button 
+                onClick={() => setIsMixMenuOpen(false)}
+                className="p-2 bg-gray-100 rounded-full text-gray-400 hover:bg-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {mixMenuIngredients.map((ing, index) => {
+                const stock = ingredients.find(i => i.name === ing.name)?.stock || 0;
+                return (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div>
+                      <div className="font-bold text-gray-900">{ing.name}</div>
+                      <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                        Stok: {stock} biji
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200">
+                        <button
+                          onClick={() => updateMixMenuIngredient(ing.name, -1)}
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+                          disabled={ing.quantity <= 0}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="text-sm font-black w-8 text-center text-gray-700">{ing.quantity}</span>
+                        <button
+                          onClick={() => updateMixMenuIngredient(ing.name, 1)}
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+                          disabled={ing.quantity >= stock}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-gray-100 pt-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Total Harga</span>
+                <span className={clsx("text-2xl font-black", calculateMixMenuPrice() > 0 ? "text-primary" : "text-gray-300")}>
+                  {calculateMixMenuPrice() > 0 ? `Rp ${calculateMixMenuPrice().toLocaleString()}` : "Pilih bahan terlebih dahulu"}
+                </span>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsMixMenuOpen(false)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={addMixMenuToCart}
+                  disabled={calculateMixMenuPrice() === 0}
+                  className={clsx(
+                    "flex-1 py-3 btn-primary flex items-center justify-center gap-2",
+                    calculateMixMenuPrice() === 0 && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Check className="w-4 h-4" />
+                  Tambahkan ke Keranjang
+                </button>
+              </div>
             </div>
           </div>
         </>
